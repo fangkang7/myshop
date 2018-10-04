@@ -1,6 +1,4 @@
 <?php
-Route::any('login','Login@index');
-
 
 // Route::any('index','Admin\IndexController@index');
 
@@ -24,5 +22,22 @@ Route::group(['middleware' => ['web','admin.login']], function(){
 Route::any('register','Index\RegisterController@index');
 // Route::any('register','Index\RegisterController@register');
 
+// 验证用户用户名是否重复
+Route::get('checkName','Index\RegisterController@checkName');
+
+// 验证验证码
+Route::get('checkCode','Index\RegisterController@checkCode');
+
 // 验证码的路由
 Route::get('captcha','Index\RegisterController@code');
+
+
+/*
+用户登录
+*/
+Route::any('login','Index\LoginController@index');
+
+/*
+首页
+*/
+Route::any('index','Index\IndexController@index');

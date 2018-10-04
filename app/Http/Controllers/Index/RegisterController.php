@@ -7,9 +7,9 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\CommonController;
 use Illuminate\Support\Facades\Validator;
 use App\Http\model\User;
-
 use Gregwar\Captcha\CaptchaBuilder;
 use Session;
+use Crypt;
 
 /**
 * 用户注册类
@@ -26,13 +26,14 @@ class RegisterController extends CommonController
 		$method=$request->method();
 		if($method == 'POST'){
             $input = $request->all();
+
             $rules = [
-                'email'    => 'required|email',
+                'code'=>'required',
+                'user_name'=>'required',
                 'password' => 'required|confirmed',
             ];
             $message = [
                 'required'           =>  ':attribute不能为空',
-                'email'              =>  '输入的邮箱格式不正确',
                 'password.confirmed' => '两次输入的密码不一致'
             ];
             $validator = Validator::make($input, $rules, $message);
@@ -45,15 +46,42 @@ class RegisterController extends CommonController
                 return back()->withErrors($validator);
             }
             $user = new user();
-            // $user->user_name = $input[''];
-            $user->email = $input['email'];
-            $user->password = $input['password'];
+            $user->user_name = $input['user_name'];
+            $user->password = Crypt::encrypt($input['password']);
             $data = $user->save($data);
+
+            if($data){
+                return redirect("home.login");
+            }
+
 		}
 		return view('home.register')->with([
 		    'data'=>$data
         ]);
 	}
+
+
+    // 验证用户名是否重复
+    public function checkName(Request $request)
+    {
+        // 获取用户名
+        $username = $request->input('name');
+        if($username){
+            $userData = new user();
+            // 查询数据库判断是否存在用户输入的值
+            $data = $userData->where([
+                'user_name'=>$username
+                ])->first();
+            if($data){
+                $send = ['code'=>400,'msg'=>'用户名已存在'];
+            }else{
+                $send = ['code'=>200];
+            }
+            return $send;
+        }
+    }
+
+
 
     // 验证码
     public function code()
@@ -66,11 +94,30 @@ class RegisterController extends CommonController
 
         //把内容存入session
 
-        Session::flash('milkcaptcha', $phrase); //存储验证码
+        // Session::flash('milkcaptcha', $phrase); //存储验证码
+        session(['code' => $phrase]);
 
         ob_clean();
 
         return response($builder->output())->header('Content-type','image/jpeg');
     }
+
+
+    // 验证验证码
+    public function checkCode(Request $request)
+    {
+        $inputCode = $request->input('code');
+
+        $code = session('code');
+
+        if($inputCode != $code){
+            $send = ['code'=>400,'msg'=>'验证码输入错误'];
+        }else{
+            $send = ['code'=>200];
+        }
+
+        return $send;
+    }
+
 
 }
